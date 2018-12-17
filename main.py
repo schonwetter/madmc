@@ -20,4 +20,5 @@ if __name__ == "__main__":
 	ipt = get_ideal_point(X_pareto)
 	npt = get_nadir_point(X_pareto)
 
-
+	i = get_mindist_point(X_norm, ipt, npt)
+	print(X.iloc[i])
