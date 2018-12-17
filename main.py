@@ -15,7 +15,7 @@ if __name__ == "__main__":
 	# Convert columns to minimize
 	X_norm[columns_to_min] = X_norm[columns_to_min].apply(lambda x: -x)
 	# Get pareto front
-	X_pareto = pareto_front(X_norm, use_cache=False)
+	X_pareto = pareto_front(X_norm, use_cache=True)
 
 	ipt = get_ideal_point(X_pareto)
 	npt = get_nadir_point(X_pareto)

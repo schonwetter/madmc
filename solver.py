@@ -41,7 +41,7 @@ def pareto_front(X, use_cache=True):
 	"""
 	if use_cache:
 		try:
-			return pd.read_csv('pareto.csv', usecols=lambda i: i>=1)
+			return pd.read_csv('pareto.csv', usecols=lambda name: name != "")
 		except IOError:
 			print("No pareto file. Computing pareto front.")
 
