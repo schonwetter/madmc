@@ -2,7 +2,28 @@ import pandas as pd
 import numpy as np
 import math
 
+def reject_solution_pareto(X,X_pareto,columns,columns_to_min,obj,value):
+    indexToReject=list()
+    if (columns[obj] in columns_to_min):
+        for i in range(len(X_pareto)):
 
+            if (X[columns[obj]][X_pareto.iloc[i]['index']]>value):
+                indexToReject.append(i)
+    
+    else:
+        for i in range(len(X_pareto)):
+
+            if (X[columns[obj]][X_pareto.iloc[i]['index']]<value):
+                indexToReject.append(i)
+        
+    X_pareto.drop(X_pareto.index[indexToReject],inplace=True)
+    return X_pareto
+        
+        
+    
+    
+    
+    
 def _compute_pareto_front(X):
 	"""Computes the pareto front from a list of vectors to maximise.
 
@@ -47,18 +68,19 @@ def pareto_front(X, use_cache=True):
 
 	X_pareto = _compute_pareto_front(X)
 	X_pareto.to_csv(path_or_buf='pareto.csv')
+    
 	return X_pareto
 
 
 def get_ideal_point(X_p):
-	"""Returns the ideal point of `X_p`, that is the point that maximises each component
+    """Returns the ideal point of `X_p`, that is the point that maximises each component
 
 	Args:
 		X_p (pd.DataFrame): Pareto front.
 
 	Returns: (pd.Series) Ideal point.
 	"""
-	return X_p.max()
+    return X_p.max()
 
 
 def get_nadir_point(X_p):
@@ -74,7 +96,7 @@ def get_nadir_point(X_p):
 
 
 def augmented_tchebycheff_dist(point, ideal_point, nadir_point, epsilon=0.001):
-	"""Computes the augmented tchebycheff distance of a `point` to the ideal point
+    """Computes the augmented tchebycheff distance of a `point` to the ideal point
 	in the direction of the nadir point.
 
 	Args:
@@ -84,11 +106,11 @@ def augmented_tchebycheff_dist(point, ideal_point, nadir_point, epsilon=0.001):
 		epsilon (float)
 
 	Returns: (float) Augmented Tchebycheff distance.
-	"""
-	norm_i = (ideal_point - point) / (ideal_point - nadir_point)
-	max_norm = norm_i.max()
-	esum = norm_i.sum() * epsilon
-	return max_norm + esum
+    """
+    norm_i = (ideal_point - point) / (ideal_point - nadir_point)
+    max_norm = norm_i.max()
+    esum = norm_i.sum() * epsilon
+    return max_norm + esum
 
 
 def get_mindist_point(X, ideal_point, nadir_point):
