@@ -117,7 +117,7 @@ def get_mindist_point(X, ideal_point, nadir_point):
 	"""
 	"""
 	min_idx = 0
-	min_dist = math.inf
+	min_dist = 10000
 	for i in range(len(X)):
 		if augmented_tchebycheff_dist(X.iloc[i], ideal_point, nadir_point) < min_dist:
 			min_idx = i

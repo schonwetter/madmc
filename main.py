@@ -1,5 +1,5 @@
 from solver import *
-
+import solverPart2
     
 
 def ask_answer(filename):
@@ -36,18 +36,18 @@ def ask_answer(filename):
     
         print("Here is the solution:")
         print(X.iloc[indice])
-        user= input("Are you satisfied of the solution found (y/n) ")
+        user= raw_input("Are you satisfied of the solution found (y/n) ")
         
         if (user=="n") :
             for i in range (len(columns)):
-                 print(i,":",columns[i])
-                
-            obj= int(input("Choose what you want to improve (number) "))
+                 print str(i) +":"+str(columns[i])
+
+            obj= int(raw_input("Choose what you want to improve (number) "))
             
             #print(X['Name'],"  ",X[columns[obj]])
             
-            print("What is your minimum/maximun acceptable value for ", columns[obj],"?" )
-            value=int(input())
+            print "What is your minimum/maximun acceptable value for ", columns[obj],"?"
+            value=int(raw_input())
             
             #print(X_pareto)
             X_pareto=reject_solution_pareto(X,X_pareto,columns,columns_to_min,obj,value)
