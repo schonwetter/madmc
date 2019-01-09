@@ -1,5 +1,8 @@
+import pandas as pd
+
+
 def get_ideal_point(x_p):
-    """Returns the ideal point of `X_p`, that is the point that maximises each
+    """Returns the ideal point of `x_p`, that is the point that maximises each
     component.
 
     Args:
@@ -12,7 +15,7 @@ def get_ideal_point(x_p):
 
 
 def get_nadir_point(x_p):
-    """Returns the nadir point of `X_p`, that is the point that minimises each
+    """Returns the nadir point of `x_p`, that is the point that minimises each
     component in the pareto front.
 
     Args:
@@ -22,6 +25,33 @@ def get_nadir_point(x_p):
         (pd.Series) Nadir point.
     """
     return x_p.min()
+
+
+def get_ideal_nadir(x):
+    """Returns the ideal point and an approximation of the nadir point in x.
+
+    Args:
+        x (pd.DataFrame): Data set.
+
+    Returns:
+        (pd.Series) Ideal point,
+        (pd.Series) Nadir point approximation.
+    """
+    ideal_point = dict()
+    ideals_idx = list()
+    nadir_point = dict()
+
+    # Compute ideal point.
+    for col_idx in x.columns:
+        idx = x[col_idx].idxmax()
+        ideal_point[col_idx] = x.loc[idx, col_idx]
+        ideals_idx.append(idx)
+
+    # Approximate nadir point.
+    for col_idx in x.columns:
+        nadir_point[col_idx] = x.loc[ideals_idx, col_idx].min()
+
+    return pd.Series(ideal_point), pd.Series(nadir_point)
 
 
 def augmented_tchebycheff_dist(point, ideal_point, nadir_point, epsilon=0.001):
@@ -39,8 +69,8 @@ def augmented_tchebycheff_dist(point, ideal_point, nadir_point, epsilon=0.001):
     """
     norm_i = (ideal_point - point) / (ideal_point - nadir_point)
     max_norm = norm_i.max()
-    esum = norm_i.sum() * epsilon
-    return max_norm + esum
+    e_sum = norm_i.sum() * epsilon
+    return max_norm + e_sum
 
 
 def get_mindist_point(x, ideal_point, nadir_point):
@@ -57,24 +87,20 @@ def get_mindist_point(x, ideal_point, nadir_point):
     """
     min_idx = 0
     min_dist = float('inf')
-    for i in range(len(x)):
-        if augmented_tchebycheff_dist(x.iloc[i], ideal_point, nadir_point) \
+    for i in x.index:
+        if augmented_tchebycheff_dist(x.loc[i, :], ideal_point, nadir_point) \
                 < min_dist:
             min_idx = i
 
     return min_idx
 
 
-def reject_solution_pareto(x, x_pareto, columns, columns_to_min, obj, value):
+def reject_solution(x_to_filter, obj, value):
     """Filters a Pareto set.
 
     Args:
-        x (pd.DataFrame): DataFrame from which the objective values should be
-            read.
-        x_pareto (pd.DataFrame): Pareto set to filter.
-        columns (list): List of objectives.
-        columns_to_min (list): Objectives that should be minimised.
-        obj (int): Index of objective in `columns`.
+        x_to_filter (pd.DataFrame): Data set to filter.
+        obj (string): Objective in `columns`.
         value (float or int): Right hand side of the constraint to add.
 
     Returns:
@@ -82,14 +108,9 @@ def reject_solution_pareto(x, x_pareto, columns, columns_to_min, obj, value):
     """
     indices_to_reject = list()
 
-    if columns[obj] in columns_to_min:
-        for i in range(len(x_pareto)):
-            if x[columns[obj]][x_pareto.iloc[i]['index']] > value:
-                indices_to_reject.append(i)
-    else:
-        for i in range(len(x_pareto)):
-            if x[columns[obj]][x_pareto.iloc[i]['index']] < value:
-                indices_to_reject.append(i)
+    for i in x_to_filter.index:
+        if x_to_filter.loc[i, obj] < value:
+            indices_to_reject.append(i)
 
-    x_pareto.drop(x_pareto.index[indices_to_reject], inplace=True)
-    return x_pareto
+    x_to_filter.drop(indices_to_reject, inplace=True)
+    return x_to_filter
