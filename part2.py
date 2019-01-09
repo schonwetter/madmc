@@ -193,7 +193,6 @@ def current_solution_strategy(data_set):
         x, y, weights_css, mmr_val = minimax_regret(data_set, known_preferences)
         index_css = x
         print("{:*^50}".format("Iteration {}".format(cpt_question)))
-        # print("Number of comparison = {}".format(len(known_preferences)))
         print("MMR = {:.4f}".format(mmr_val))
         print("Index of preferred car: {}".format(index_dm))
         print("Index of MMR: {}".format(index_css))
@@ -202,7 +201,7 @@ def current_solution_strategy(data_set):
             print("Decision maker satisfied.")
             break
 
-        print("Next question: car No {} > car No {}".format(x, y))
+        print("Next question: car No {} > car No {} ?".format(x, y))
 
         # Ask DM's preference between x and y.
         f_x = fitness(weights_dm, data_set.iloc[x])
