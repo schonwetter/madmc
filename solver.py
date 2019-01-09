@@ -1,59 +1,38 @@
 import pandas as pd
 import numpy as np
-import math
 
-def reject_solution_pareto(X,X_pareto,columns,columns_to_min,obj,value):
-    indexToReject=list()
-    if (columns[obj] in columns_to_min):
-        for i in range(len(X_pareto)):
 
-            if (X[columns[obj]][X_pareto.iloc[i]['index']]>value):
-                indexToReject.append(i)
-    
-    else:
-        for i in range(len(X_pareto)):
-
-            if (X[columns[obj]][X_pareto.iloc[i]['index']]<value):
-                indexToReject.append(i)
-        
-    X_pareto.drop(X_pareto.index[indexToReject],inplace=True)
-    return X_pareto
-        
-        
-    
-    
-    
-    
-def _compute_pareto_front(X):
+def _compute_pareto_front(x):
 	"""Computes the pareto front from a list of vectors to maximise.
 
 	Args:
-		X (pd.DataFrame): Input data.
+		x (pd.DataFrame): Input data.
 
 	Returns:
 		(pd.DataFrame) Pareto front of the input data.
 	"""
-	X_pareto = pd.DataFrame([])
+	x_pareto = pd.DataFrame([])
 	dominates = {}
-	for i in range(len(X)):
-		for j in range(len(X)):
-			if i == j: continue
-			if np.all(X.iloc[i] >= X.iloc[j]) and np.any(X.iloc[i] > X.iloc[j]):
+	for i in range(len(x)):
+		for j in range(len(x)):
+			if i == j:
+				continue
+			if np.all(x.iloc[i] >= x.iloc[j]) and np.any(x.iloc[i] > x.iloc[j]):
 				dominates[(i, j)] = True
 
-	for i in range(len(X)):
-		if not any([dominates.get((j, i), False) for j in range(len(X))]):
-			X_pareto = X_pareto.append(X.iloc[i])
+	for i in range(len(x)):
+		if not any([dominates.get((j, i), False) for j in range(len(x))]):
+			x_pareto = x_pareto.append(x.iloc[i])
 
-	return X_pareto
+	return x_pareto
 
 
-def pareto_front(X, use_cache=True):
+def pareto_front(x, use_cache=True):
 	"""Computes the pareto front from a list of vectors to maximise. Uses
 	`pareto.csv` as a cache. If the file exists, its content is returned.
 
 	Args:
-		X (pd.DataFrame): Input data.
+		x (pd.DataFrame): Input data.
 		use_cache (bool): If false, force computation of pareto front and
 			saves it in `pareto.csv`.
 
@@ -66,60 +45,7 @@ def pareto_front(X, use_cache=True):
 		except IOError:
 			print("No pareto file. Computing pareto front.")
 
-	X_pareto = _compute_pareto_front(X)
-	X_pareto.to_csv(path_or_buf='pareto.csv')
-    
-	return X_pareto
+	x_pareto = _compute_pareto_front(x)
+	x_pareto.to_csv(path_or_buf='pareto.csv')
 
-
-def get_ideal_point(X_p):
-    """Returns the ideal point of `X_p`, that is the point that maximises each component
-
-	Args:
-		X_p (pd.DataFrame): Pareto front.
-
-	Returns: (pd.Series) Ideal point.
-	"""
-    return X_p.max()
-
-
-def get_nadir_point(X_p):
-	"""Returns the nadir point of `X_p`, that is the point that minimises each component
-	among the pareto front.
-
-	Args:
-		X_p (pd.DataFrame): Pareto front.
-
-	Returns: (pd.Series) Nadir point.
-	"""
-	return X_p.min()
-
-
-def augmented_tchebycheff_dist(point, ideal_point, nadir_point, epsilon=0.001):
-    """Computes the augmented tchebycheff distance of a `point` to the ideal point
-	in the direction of the nadir point.
-
-	Args:
-		point (pd.Series)
-		ideal_point (pd.Series)
-		nadir_point (pd.Series)
-		epsilon (float)
-
-	Returns: (float) Augmented Tchebycheff distance.
-    """
-    norm_i = (ideal_point - point) / (ideal_point - nadir_point)
-    max_norm = norm_i.max()
-    esum = norm_i.sum() * epsilon
-    return max_norm + esum
-
-
-def get_mindist_point(X, ideal_point, nadir_point):
-	"""
-	"""
-	min_idx = 0
-	min_dist = 10000
-	for i in range(len(X)):
-		if augmented_tchebycheff_dist(X.iloc[i], ideal_point, nadir_point) < min_dist:
-			min_idx = i
-
-	return min_idx
+	return x_pareto
