@@ -3,6 +3,7 @@ import pandas as pd
 
 from gurobipy import *
 from solver import pareto_front
+import matplotlib.pyplot as plt
 
 
 def create_weighted_sum_dm(data_set, weights=None):
@@ -165,55 +166,90 @@ def get_best_solution(weights, data_set):
     return index
 
 
-def current_solution_strategy(data_set):
-    """Starts the Current Solution Strategy (CSS). As long as the Decision Maker
-    (DM) is not satisfied, the iterative process will ask them to specify their
-    preference between the two alternatives:
-    - x that minimises MR.
-    - y that maximises PMR for x.
+def current_solution_strategy(data_set,display=False):
+	"""Starts the Current Solution Strategy (CSS). As long as the Decision Maker
+	(DM) is not satisfied, the iterative process will ask them to specify their
+	preference between the two alternatives:
+	- x that minimises MR.
+	- y that maximises PMR for x.
 
-    Args:
-        data_set (pd.DataFrame): Data set.
+	Args:
+		data_set  normalized(pd.DataFrame): Data set.
 
-    Returns:
-        (int) Number of questions asked before the DM was satisfied.
-    """
+	Returns:
+		(int) Number of questions asked before the DM was satisfied.
+	"""
 
-    # Create a preference profile for the decision maker.
-    # `weights_dm` are the weights attributed to each objective by the DM.
-    # `index_dm` is the index of the best solution in the data set according to
-    # the weights.
-    weights_dm, index_dm = create_weighted_sum_dm(data_set)
-    index_css = -1
-    known_preferences = []
+	# Create a preference profile for the decision maker.
+	# `weights_dm` are the weights attributed to each objective by the DM.
+	# `index_dm` is the index of the best solution in the data set according to
+	# the weights.
+	weights_dm, index_dm = create_weighted_sum_dm(data_set)
+	index_css = -1
+	known_preferences = []
 
-    cpt_question = 0
-    while index_dm != index_css:
-        # Compute MMR.
-        x, y, weights_css, mmr_val = minimax_regret(data_set, known_preferences)
-        index_css = x
-        print("{:*^50}".format("Iteration {}".format(cpt_question)))
-        print("MMR = {:.4f}".format(mmr_val))
-        print("Index of preferred car: {}".format(index_dm))
-        print("Index of MMR: {}".format(index_css))
+	if display:
+		abscisse=[]
+		MMR=[]
 
-        if index_dm == index_css:
-            print("Decision maker satisfied.")
-            break
+	cpt_question = 0
+	while index_dm != index_css:
+		# Compute MMR.
+		x, y, weights_css, mmr_val = minimax_regret(data_set, known_preferences)
+		index_css = x
 
-        print("Next question: car No {} > car No {} ?".format(x, y))
+		if display:
+			abscisse.append(cpt_question)
+			MMR.append(mmr_val)
 
-        # Ask DM's preference between x and y.
-        f_x = fitness(weights_dm, data_set.iloc[x])
-        f_y = fitness(weights_dm, data_set.iloc[y])
-        if f_x >= f_y:
-            known_preferences.append((data_set.iloc[x], data_set.iloc[y]))
-        else:
-            known_preferences.append((data_set.iloc[y], data_set.iloc[x]))
+		print("{:*^50}".format("Iteration {}".format(cpt_question)))
+		print("MMR = {:.4f}".format(mmr_val))
+		print("Index of preferred car: {}".format(index_dm))
+		print("Index of MMR: {}".format(index_css))
 
-        cpt_question += 1
+		if index_dm == index_css:
+			print("Decision maker satisfied.")
+			break
 
-    return cpt_question
+		print("Next question: car No {} > car No {} ?".format(x, y))
+
+		# Ask DM's preference between x and y.
+		f_x = fitness(weights_dm, data_set.iloc[x])
+		f_y = fitness(weights_dm, data_set.iloc[y])
+		if f_x >= f_y:
+			known_preferences.append((data_set.iloc[x], data_set.iloc[y]))
+		else:
+			known_preferences.append((data_set.iloc[y], data_set.iloc[x]))
+
+		cpt_question += 1
+		
+	if display:
+		plt.plot(abscisse,MMR,'bo')
+		plt.plot(abscisse,MMR)
+		plt.ylabel('MMR')
+		plt.xlabel('number of questions')
+		plt.title('Evolution of MMR depending on the number of querries')
+		plt.show()
+	return cpt_question
+		
+def average_number_querries_required(data_set,nbiter=20):
+	"""
+	Computes the average number of question needed to find DM's favorite solution
+	Args:
+		data_set normalized (pd.DataFrame): Data set.
+
+	Returns:
+		(int)Average Number of questions asked 
+	
+	"""
+	
+	cpt_questions=0
+	for i in range(nbiter):
+		cpt_questions+=current_solution_strategy(data_set,display=False)
+	return float(cpt_questions)/nbiter
+
+		
+
 
 
 if __name__ == "__main__":
@@ -241,5 +277,11 @@ if __name__ == "__main__":
     x_norm[columns_to_min] = x_norm[columns_to_min].apply(lambda v: -v)
 
     # Start CSS
-    current_solution_strategy(x_norm)
+    current_solution_strategy(x_norm,display=True)
+    
+    #Average number of questions required to find DM's favorite car
+    # with nbiter=100 , av_num=1.28 (with uniform distribution of weight).
+    av_numb=average_number_querries_required(x_norm,nbiter=20)
+    print("Average number of querries : "+str(av_numb))
+     
 
