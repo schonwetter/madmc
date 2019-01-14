@@ -44,7 +44,7 @@ def interactive_decision(_t_data_set):
             objective_name = columns[obj]
             keyword = "maximum" if objective_name in columns_to_min else "minimum"
             print("What is your " + keyword + " acceptable value for " + objective_name + " ?")
-            value = int(raw_input())
+            value = float(raw_input())
             if objective_name in columns_to_min:
                 value = - value
 
@@ -76,7 +76,7 @@ def auto_iterative_decision(_t_data_set):
     """
 
     # Best solution for a random DM profile.
-    _, index_dm = create_weighted_sum_dm(_t_data_set, gen_type='peaked')
+    _, index_dm = create_weighted_sum_dm(_t_data_set, gen_type='ordered')
     print(_)
     best_solution_dm = _t_data_set.loc[index_dm, :]
 
