@@ -96,15 +96,15 @@ def get_mindist_point(x, ideal_point, nadir_point):
 
 
 def reject_solution(x_to_filter, obj, value):
-    """Filters a Pareto set.
+    """Filters a data set.
 
     Args:
         x_to_filter (pd.DataFrame): Data set to filter.
-        obj (string): Objective in `columns`.
+        obj (string): Name of the objective to filter.
         value (float or int): Right hand side of the constraint to add.
 
     Returns:
-        (pd.DataFrame) Filtered Pareto set.
+        (pd.DataFrame) Filtered data set.
     """
     indices_to_reject = list()
 
