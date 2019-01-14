@@ -4,6 +4,7 @@ import pandas as pd
 from gurobipy import *
 
 from profile import create_weighted_sum_dm
+from tchebycheff import get_ideal_nadir
 
 
 def pairwise_max_regret(x, y, known_preferences):
@@ -237,23 +238,20 @@ if __name__ == "__main__":
     car_data_set = pd.read_csv('data.csv', skiprows=1,
                            dtype={'Design': np.float64, 'Frame': np.float64})
 
-    # Fill NaN values with mean
-    car_data_set.fillna(car_data_set.mean(), inplace=True)
-
     # Numeric columns
-    columns = ['Engine', 'Torque', 'Weight', 'Acceleration', 'Price',
-               'Pollution', 'Design', 'Frame']
+    columns = ['Engine', 'Torque', 'Weight', 'Acceleration', 'Price', 'Pollution']
 
     # min-max normalize
-    x_norm = (car_data_set[columns] - car_data_set[columns].min()) / \
-         (car_data_set[columns].max() - car_data_set[columns].min())
+    x_norm = car_data_set.loc[:, columns]
+    ipt, npt = get_ideal_nadir(x_norm)
+    x_norm = x_norm / (ipt - npt)
 
     # Convert columns to minimize
     x_norm[columns_to_min] = x_norm[columns_to_min].apply(lambda v: -v)
 
     # Try different weight initialisation:
     # - iid
-    weights_dm, index_dm = create_weighted_sum_dm(x_norm, gen_type="iid")
+    weights_dm, _ = create_weighted_sum_dm(x_norm, gen_type="iid")
     print(weights_dm)
     # - peaked
     weights_dm, _ = create_weighted_sum_dm(x_norm, gen_type="peaked")
