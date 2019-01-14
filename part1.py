@@ -77,21 +77,29 @@ def auto_iterative_decision(_t_data_set):
 
     # Best solution for a random DM profile.
     _, index_dm = create_weighted_sum_dm(_t_data_set, gen_type='peaked')
+    print(_)
     best_solution_dm = _t_data_set.loc[index_dm, :]
 
+    _best_solution_index = -1
     niter = 0
     while True:
         niter += 1
+        print("{:*^50}".format("Iteration {}".format(niter)))
 
         # Compute ideal point and nadir point (approx).
         ipt, npt = get_ideal_nadir(_t_data_set)
 
         # Compute best solution in current data set.
         _best_solution_index = get_mindist_point(_t_data_set, ipt, npt)
+        print("Best solution found at index {}: {}".format(
+            _best_solution_index,
+            data_set.loc[_best_solution_index, 'Name']
+        ))
 
         if _best_solution_index == index_dm:  # DM satisfied.
             break
 
+        print("DM not satisfied.")
         # Search for the objective that's the least satisfied.
         worst_objective = None
         worst_gap = 0
@@ -103,11 +111,20 @@ def auto_iterative_decision(_t_data_set):
                 worst_gap = gap
                 worst_objective = objective_name
 
-        # Filter data set for the worst objective.
+        # Filter data set by the worst objective.
         objective_value = _t_data_set.loc[_best_solution_index, worst_objective]
         _t_data_set = reject_solution(_t_data_set, worst_objective, objective_value, strict=True)
+        keyword = 'high' if worst_objective in columns_to_min else 'low'
+        objective_value_disp = objective_value
+        if worst_objective in columns_to_min:
+            objective_value_disp = - objective_value
+        print("Filtering data set. {} is too {} (value = {})\n".format(
+            worst_objective,
+            keyword,
+            objective_value_disp
+        ))
 
-    print("Found solution for DM in {} iterations".format(niter))
+    print("\nFound solution for DM in {} iterations".format(niter))
 
 
 if __name__ == "__main__":
