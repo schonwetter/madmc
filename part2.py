@@ -111,7 +111,7 @@ def minimax_regret(data_set, known_preferences):
 def fitness(weight, x):
     """Returns the sum of the values in `x` weighted by the values in `weights`.
     """
-    return (weight * x[columns]).sum()
+    return (weight * x).sum()
 
 
 def get_best_solution(weights, data_set):
@@ -188,11 +188,15 @@ def current_solution_strategy(data_set, display=False, gen_type="iid"):
         print("Next question: car No {} > car No {} ?".format(x, y))
 
         # Ask DM's preference between x and y.
-        f_x = fitness(_weights_dm, data_set.iloc[x])
-        f_y = fitness(_weights_dm, data_set.iloc[y])
+        f_x = fitness(_weights_dm, data_set[data_set.columns].iloc[x])
+        f_y = fitness(_weights_dm, data_set[data_set.columns].iloc[y])
+        print(f_x)
+        print(f_y)
         if f_x >= f_y:
+
             known_preferences.append((data_set.iloc[x], data_set.iloc[y]))
         else:
+
             known_preferences.append((data_set.iloc[y], data_set.iloc[x]))
 
         cpt_question += 1
@@ -242,23 +246,19 @@ if __name__ == "__main__":
     columns = ['Engine', 'Torque', 'Weight', 'Acceleration', 'Price', 'Pollution']
 
     # min-max normalize
+    
     x_norm = car_data_set.loc[:, columns]
+    print(x_norm[columns])
+    x_norm[columns_to_min] = x_norm[columns_to_min].apply(lambda v: -v)
     ipt, npt = get_ideal_nadir(x_norm)
     x_norm = x_norm / (ipt - npt)
-
+    print(x_norm[columns])
+    
     # Convert columns to minimize
-    x_norm[columns_to_min] = x_norm[columns_to_min].apply(lambda v: -v)
+    
 
     # Try different weight initialisation:
-    # - iid
-    weights_dm, _ = create_weighted_sum_dm(x_norm, gen_type="iid")
-    print(weights_dm)
-    # - peaked
-    weights_dm, _ = create_weighted_sum_dm(x_norm, gen_type="peaked")
-    print(weights_dm)
-    # - ordered
-    weights_dm, _ = create_weighted_sum_dm(x_norm, gen_type="ordered")
-    print(weights_dm)
+
 
     # Start CSS
     current_solution_strategy(x_norm, display=True, gen_type="ordered")
