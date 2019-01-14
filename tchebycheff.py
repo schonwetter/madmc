@@ -1,3 +1,5 @@
+from operator import lt, le
+
 import pandas as pd
 
 
@@ -56,7 +58,8 @@ def get_ideal_nadir(x):
 
 def augmented_tchebycheff_dist(point, ideal_point, nadir_point, epsilon=0.001):
     """Computes the augmented tchebycheff distance of a `point` to the ideal
-    point in the direction of the nadir point.
+    point in the direction of the nadir point. Uniform weights are used to
+    control objective importance.
 
     Args:
         point (pd.Series)
@@ -67,49 +70,57 @@ def augmented_tchebycheff_dist(point, ideal_point, nadir_point, epsilon=0.001):
     Returns:
         (float) Augmented Tchebycheff distance.
     """
-    norm_i = (ideal_point - point) / (ideal_point - nadir_point)
+    if ideal_point.equals(nadir_point):
+        return 0
+
+    weights = pd.Series({obj: 1 / float(len(point)) for obj in point.index})
+    norm_i = (weights * (ideal_point - point)) / (ideal_point - nadir_point)
     max_norm = norm_i.max()
-    e_sum = norm_i.sum() * epsilon
+    e_sum = (weights * norm_i).sum() * epsilon
     return max_norm + e_sum
 
 
 def get_mindist_point(x, ideal_point, nadir_point):
-    """Computes the solution in `X` that minimises the augmented tchebycheff
+    """Computes the solution in `x` that minimises the augmented tchebycheff
     distance.
 
     Args:
         x (pd.DataFrame): List of solutions.
-        ideal_point (pd.Series): Ideal point in X.
-        nadir_point (pd.Series): Nadir point in X.
+        ideal_point (pd.Series): Ideal point in `x`.
+        nadir_point (pd.Series): Nadir point in `x`.
 
     Returns:
-        (int) Index in X.
+        (int) Index in `x`.
     """
-    min_idx = 0
+    min_idx = -1
     min_dist = float('inf')
     for i in x.index:
-        if augmented_tchebycheff_dist(x.loc[i, :], ideal_point, nadir_point) \
-                < min_dist:
+        distance = augmented_tchebycheff_dist(x.loc[i, :], ideal_point, nadir_point)
+        if distance < min_dist:
             min_idx = i
+            min_dist = distance
 
     return min_idx
 
 
-def reject_solution(x_to_filter, obj, value):
+def reject_solution(x_to_filter, objective_name, value, strict=False):
     """Filters a data set.
 
     Args:
         x_to_filter (pd.DataFrame): Data set to filter.
-        obj (string): Name of the objective to filter.
+        objective_name (string): Name of the objective to filter.
         value (float or int): Right hand side of the constraint to add.
+        strict (bool): Remove solutions when the objective value is equal to
+            the `value` passed.
 
     Returns:
         (pd.DataFrame) Filtered data set.
     """
     indices_to_reject = list()
+    op = le if strict else lt
 
     for i in x_to_filter.index:
-        if x_to_filter.loc[i, obj] < value:
+        if op(x_to_filter.loc[i, objective_name], value):
             indices_to_reject.append(i)
 
     x_to_filter.drop(indices_to_reject, inplace=True)

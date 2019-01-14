@@ -241,8 +241,8 @@ if __name__ == "__main__":
     car_data_set.fillna(car_data_set.mean(), inplace=True)
 
     # Numeric columns
-    columns = ['Engine', 'Torque', 'Weight', 'Acceleration',
-           'Price', 'Pollution', 'Design', 'Frame']
+    columns = ['Engine', 'Torque', 'Weight', 'Acceleration', 'Price',
+               'Pollution', 'Design', 'Frame']
 
     # min-max normalize
     x_norm = (car_data_set[columns] - car_data_set[columns].min()) / \
