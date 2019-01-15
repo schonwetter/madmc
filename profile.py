@@ -1,6 +1,41 @@
 import numpy as np
 
 
+def create_weights(length=1, gen_type="iid"):
+    weights = None
+
+    if gen_type == "iid":  # Generate uniform weights for all objectives.
+        weights = np.random.uniform(0, 100, length)
+
+    if gen_type == "peaked":  # Generate peaked weights.
+        weights = np.array([])
+        nbpeaks = np.random.random_integers(1, length // 2)
+        for i in range(nbpeaks):
+            weights = np.append(weights, np.random.random_integers(50, 100))
+        for i in range(length - nbpeaks):
+            weights = np.append(weights, np.random.random_integers(0, 10))
+        np.random.shuffle(weights)
+
+    if gen_type == "ordered":  # Generate ordered weights.
+        weights = np.array([])
+        upper_limit = 100
+        lower_limit = 0
+        weights = np.append(
+            weights,
+            np.random.random_integers(lower_limit, upper_limit)
+        )
+        for i in range(length - 1):
+            lower_limit = upper_limit + 1000
+            upper_limit = lower_limit + 100
+            weights = np.append(
+                weights,
+                np.random.random_integers(lower_limit, upper_limit)
+            )
+        np.random.shuffle(weights)
+
+    return weights / weights.sum()
+
+
 def create_weighted_sum_dm(data_set, weights=None, gen_type="iid"):
     """Computes the best solution in `data_set` in regards to a weighted sum of
     the objectives. If no argument `weights` is passed, a random weight vector
@@ -18,37 +53,7 @@ def create_weighted_sum_dm(data_set, weights=None, gen_type="iid"):
             solution.
     """
     if weights is None:
-
-        if gen_type == "iid":  # Generate uniform weights for all objectives.
-            weights = np.random.uniform(0, 100, len(data_set.columns))
-
-        if gen_type == "peaked":  # Generate peaked weights.
-            weights = np.array([])
-            nbpeaks = np.random.random_integers(1, len(data_set.columns) // 2)
-            for i in range (nbpeaks):
-                weights = np.append(weights, np.random.random_integers(50, 100))
-            for i in range (len(data_set.columns) - nbpeaks):
-                weights = np.append(weights,np.random.random_integers(0, 10))
-            np.random.shuffle(weights)
-
-        if gen_type == "ordered":  # Generate ordered weights.
-            weights = np.array([])
-            upper_limit = 100
-            lower_limit = 0
-            weights = np.append(
-                weights,
-                np.random.random_integers(lower_limit, upper_limit)
-            )
-            for i in range (len(data_set.columns) - 1):
-                lower_limit = upper_limit + 1000
-                upper_limit = lower_limit + 100
-                weights = np.append(
-                    weights,
-                    np.random.random_integers(lower_limit, upper_limit)
-                )
-            np.random.shuffle(weights)
-
-        weights = weights / weights.sum()
+        weights = create_weights(length=len(data_set.columns), gen_type=gen_type)
 
     max_value = -float('inf')
     best_index = 0

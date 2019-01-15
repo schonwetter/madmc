@@ -1,7 +1,7 @@
 import sys
 
+from pareto import *
 from profile import create_weighted_sum_dm
-from solver import *
 from tchebycheff import *
 
 
