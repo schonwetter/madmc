@@ -78,7 +78,6 @@ def get_ideal_nadir(_weights, _utilities, _bound, constraints=None):
         objective = quicksum(_variables[i] * _utilities[i][_criterion] for i in range(p))
         model.setObjective(objective, GRB.MAXIMIZE)
         model.setParam('OutputFlag', False)
-        model.write("model.lp")
         model.optimize()
         ideals.append([sum(_variables[i].x * _utilities[i][c] for i in range(p)) for c in range(n)])
         ideals_d.append([abs(_variables[i].x) for i in range(p)])
@@ -132,9 +131,9 @@ def get_model(_weights, _utilities, _b, epsilon=0.001, constraints=None):
     model.addConstr(quicksum(_variables[i] * _weights[i] for i in range(p)) <= _b)
 
     # Additional constraints
-    for c, c_constant in constraints.items():
+    for _c, c_constant in constraints.items():
         model.addConstr(
-            quicksum(_variables[i] * _utilities[i][c] for i in range(p))
+            quicksum(_variables[i] * _utilities[i][_c] for i in range(p))
             >= c_constant
         )
 
@@ -202,9 +201,10 @@ if __name__ == "__main__":
 
     additional_constraints = dict()
     niter = 0
+    nquestion = 0
     while True:
         niter += 1
-
+        print("{:*^50}".format("Iteration {}".format(niter)))
         m, variables, ipt, npt, ipt_d = get_model(weights, utilities, bound,
                                                   constraints=additional_constraints)
 
@@ -214,13 +214,17 @@ if __name__ == "__main__":
             m.optimize()
             model_solution = [abs(variable.x) for variable in variables]
 
-        print(model_solution)
-        print([sum(model_solution[i] * utilities[i][c] for i in range(p_objects))
-               for c in range(n_objectives)])
+        print("Found solution: {}".format(model_solution))
+        print("Solution value: {}".format([sum(model_solution[i] * utilities[i][c]
+                                               for i in range(p_objects))
+                                           for c in range(n_objectives)]))
 
         if model_solution == solution_dm:  # DM satisfied.
+            print("DM satisfied.")
             break
 
+        nquestion += 1
+        print("DM not satisfied.")
         # Find objective with biggest gap.
         worst_gap = 0
         worst_objective = None
@@ -243,13 +247,9 @@ if __name__ == "__main__":
 
         # Add constraint to filter solution space. `worst_objective` must be
         # greater than current value.
-        print("Worst objective is {}".format(worst_objective))
-        print("Adding constraint z_{} > {}".format(worst_objective,
+        print("Worst objective is {}".format(worst_objective + 1))
+        print("Adding constraint z_{} > {}".format(worst_objective + 1,
                                                    worst_objective_value))
         additional_constraints[worst_objective] = worst_objective_value + 1
 
-    print("Found correct solution in {} iterations.".format(niter))
-    print(solution_dm)
-    print([sum(solution_dm[i] * utilities[i][c] for i in range(p_objects))
-           for c in range(n_objectives)])
-    print(model_solution)
+    print("Found correct solution by asking {} questions.".format(nquestion))
