@@ -62,7 +62,7 @@ def interactive_decision(_t_data_set):
             _best_solution_index = get_mindist_point(_t_data_set, ipt, npt)
 
 
-def auto_iterative_decision(_t_data_set):
+def auto_iterative_decision(_t_data_set, gen_type='iid'):
     """Finds the best solution for a simulated Decision Maker (DM). Its profile
     is generated as a set of random weights and its ideal solution is computed
     as the alternative that maximises the weighted sum of the objectives.
@@ -73,15 +73,17 @@ def auto_iterative_decision(_t_data_set):
 
     Args:
         _t_data_set (pd.DataFrame): Data set of alternatives.
+        gen_type (string): Type of generation for the DM profile.
     """
 
     # Best solution for a random DM profile.
-    _, index_dm = create_weighted_sum_dm(_t_data_set, gen_type='ordered')
+    _, index_dm = create_weighted_sum_dm(_t_data_set, gen_type=gen_type)
     print(_)
     best_solution_dm = _t_data_set.loc[index_dm, :]
 
     _best_solution_index = -1
     niter = 0
+    nquestion = 0
     while True:
         niter += 1
         print("{:*^50}".format("Iteration {}".format(niter)))
@@ -98,6 +100,8 @@ def auto_iterative_decision(_t_data_set):
 
         if _best_solution_index == index_dm:  # DM satisfied.
             break
+
+        nquestion += 1
 
         print("DM not satisfied.")
         # Search for the objective that's the least satisfied.
@@ -124,7 +128,8 @@ def auto_iterative_decision(_t_data_set):
             objective_value_disp
         ))
 
-    print("\nFound solution for DM in {} iterations".format(niter))
+    print("\nFound solution for DM by asking {} questions".format(nquestion))
+    return nquestion
 
 
 if __name__ == "__main__":
@@ -154,4 +159,4 @@ if __name__ == "__main__":
     if len(sys.argv) > 1 and sys.argv[1] == '-i':
         interactive_decision(t_data_set)
     else:
-        auto_iterative_decision(t_data_set)
+        auto_iterative_decision(t_data_set, gen_type='iid')

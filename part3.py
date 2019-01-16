@@ -21,7 +21,7 @@ def generate_instance(n=5, p=10):
     item_utilities = list()
     for item in range(p):
         item_utilities.append(list())
-        for c in range(n):
+        for _ in range(n):
             item_utilities[item].append(randint(1, 10))
 
         item_weights.append(randint(1, 10))
@@ -31,7 +31,7 @@ def generate_instance(n=5, p=10):
     return item_weights, item_utilities, _bound
 
 
-def get_ideal_nadir(_weights, _utilities, _bound):
+def get_ideal_nadir(_weights, _utilities, _bound, constraints=None):
     """Returns the ideal point and a nadir point approximation for a knapsack
     (KP) defined by `_weights`, `_utilities`, and `_bound`.
 
@@ -39,18 +39,22 @@ def get_ideal_nadir(_weights, _utilities, _bound):
         _weights (list[int]): List of weights for each object of the problem.
         _utilities (list[list[int]]): Utilities for each object and each objective.
         _bound (int): KP bound.
+        constraints (dict): Additional constraints for (KP).
 
     Returns:
-        (list[float], list[float]): Ideal and nadir point approximation.
+        (list[float], list[float], list[float]): Ideal and nadir point approximation.
     """
     n = len(_utilities[0])
     p = len(_weights)
 
     ideal_point = list()
     ideals = list()
+    ideals_d = list()
     nadir_point = [float('inf') for _ in range(n)]
+    if constraints is None:
+        constraints = dict()
 
-    # Performs n mono-objective optimisations.
+    # Performs `n` mono-objective optimisations.
     for _criterion in range(n):
         model = Model("mono-Knapsack")
         _variables = []
@@ -62,13 +66,22 @@ def get_ideal_nadir(_weights, _utilities, _bound):
         model.update()
 
         # Knapsack constraint
-        model.addConstr(quicksum(_variables[i] * weights[i] for i in range(p)) <= _bound)
+        model.addConstr(quicksum(_variables[i] * _weights[i] for i in range(p)) <= _bound)
 
-        objective = quicksum(_variables[i] * utilities[i][_criterion] for i in range(p))
+        # Additional constraints
+        for c, c_constant in constraints.items():
+            model.addConstr(
+                quicksum(_variables[i] * _utilities[i][c] for i in range(p))
+                >= c_constant
+            )
+
+        objective = quicksum(_variables[i] * _utilities[i][_criterion] for i in range(p))
         model.setObjective(objective, GRB.MAXIMIZE)
         model.setParam('OutputFlag', False)
+        model.write("model.lp")
         model.optimize()
-        ideals.append([abs(_variables[i].x * utilities[i][_criterion]) for i in range(p)])
+        ideals.append([sum(_variables[i].x * _utilities[i][c] for i in range(p)) for c in range(n)])
+        ideals_d.append([abs(_variables[i].x) for i in range(p)])
         ideal_point.append(model.objVal)
 
     # Compute nadir point with the vectors computed above.
@@ -77,27 +90,33 @@ def get_ideal_nadir(_weights, _utilities, _bound):
             if ideal[_criterion] < nadir_point[_criterion]:
                 nadir_point[_criterion] = ideal[_criterion]
 
-    return ideal_point, nadir_point
+    return ideal_point, nadir_point, ideals_d[0]
 
 
-def get_model(_weights, _utilities, _b, _ipt, _npt, epsilon=0.001):
-    """Creates a Gurobi MOKP optimisation model that minimises the augmented
-    tchebycheff distance.
+def get_model(_weights, _utilities, _b, epsilon=0.001, constraints=None):
+    """Creates a Gurobi MOKP model that minimises the augmented Tchebycheff
+    distance.
 
     Args:
         _weights (list[int]): Weights for each object.
         _utilities (list[list[int]]): Utilities for each object and each
             objective.
         _b (int): KP bound.
-        _ipt (list[float]): Ideal point of the problem.
-        _npt (list[float]): Nadir point of the problem.
         epsilon (float): Epsilon used to augment the tchebycheff distance.
+        constraints (dict): Additional constraints.
 
     Returns:
-        (Model, list[Var]): Model and variables created.
+        (Model, list[Var], list[float], list[float], list[float]): Model,
+            variables created, ideal point and nadir point, ideal point in
+            decision space.
     """
     n = len(_utilities[0])
     p = len(_weights)
+
+    if constraints is None:
+        constraints = dict()
+    _ipt, _npt, _ipt_d = get_ideal_nadir(_weights, _utilities, _b,
+                                         constraints=constraints)
 
     model = Model("multi-Knapsack")
     _variables = list()
@@ -112,8 +131,17 @@ def get_model(_weights, _utilities, _b, _ipt, _npt, epsilon=0.001):
     # Knapsack constraint
     model.addConstr(quicksum(_variables[i] * _weights[i] for i in range(p)) <= _b)
 
+    # Additional constraints
+    for c, c_constant in constraints.items():
+        model.addConstr(
+            quicksum(_variables[i] * _utilities[i][c] for i in range(p))
+            >= c_constant
+        )
+
     augmented_sum_m = list()
     for _criterion in range(n):
+        if _ipt[_criterion] == _npt[_criterion]:
+            continue
         rhs = _ipt[_criterion] - quicksum(_variables[i] * _utilities[i][_criterion] for i in range(p))
         rhs /= (_ipt[_criterion] - _npt[_criterion])
         augmented_sum_m.append(rhs)
@@ -121,7 +149,7 @@ def get_model(_weights, _utilities, _b, _ipt, _npt, epsilon=0.001):
 
     model.setObjective(z + epsilon * quicksum(augmented_sum_m), GRB.MINIMIZE)
     model.setParam('OutputFlag', False)
-    return model, _variables
+    return model, _variables, _ipt, _npt, _ipt_d
 
 
 def get_best_solution_dm(_objective_weights, _weights, _utilities, _b):
@@ -160,18 +188,11 @@ def get_best_solution_dm(_objective_weights, _weights, _utilities, _b):
 
 
 if __name__ == "__main__":
-    n_objectives = 30
-    p_objects = 30
+    n_objectives = 5
+    p_objects = 10
 
     # Generating random knapsack instance.
     weights, utilities, bound = generate_instance(n=n_objectives, p=p_objects)
-
-    # Compute ideal and nadir point approximation.
-    ipt, npt = get_ideal_nadir(weights, utilities, bound)
-
-    # Create optimisation model.
-    m, variables = get_model(weights, utilities, bound, ipt, npt)
-    model_solution = None
 
     # Create random DM profile.
     weights_dm = create_weights(length=n_objectives, gen_type='ordered')
@@ -179,12 +200,23 @@ if __name__ == "__main__":
     # Compute DM best solution
     solution_dm = get_best_solution_dm(weights_dm, weights, utilities, bound)
 
+    additional_constraints = dict()
     niter = 0
     while True:
         niter += 1
 
-        m.optimize()
-        model_solution = [abs(variable.x) for variable in variables]
+        m, variables, ipt, npt, ipt_d = get_model(weights, utilities, bound,
+                                                  constraints=additional_constraints)
+
+        if ipt == npt:
+            model_solution = ipt_d
+        else:
+            m.optimize()
+            model_solution = [abs(variable.x) for variable in variables]
+
+        print(model_solution)
+        print([sum(model_solution[i] * utilities[i][c] for i in range(p_objects))
+               for c in range(n_objectives)])
 
         if model_solution == solution_dm:  # DM satisfied.
             break
@@ -211,11 +243,13 @@ if __name__ == "__main__":
 
         # Add constraint to filter solution space. `worst_objective` must be
         # greater than current value.
-        s = quicksum(
-            variables[i] * utilities[i][worst_objective] for i in range(p_objects)
-        )
-        m.addConstr(s >= worst_objective_value + 1)
+        print("Worst objective is {}".format(worst_objective))
+        print("Adding constraint z_{} > {}".format(worst_objective,
+                                                   worst_objective_value))
+        additional_constraints[worst_objective] = worst_objective_value + 1
 
     print("Found correct solution in {} iterations.".format(niter))
     print(solution_dm)
+    print([sum(solution_dm[i] * utilities[i][c] for i in range(p_objects))
+           for c in range(n_objectives)])
     print(model_solution)

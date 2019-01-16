@@ -17,7 +17,7 @@ def pairwise_max_regret(x, y, known_preferences):
             preferred to p[1].
 
     Returns:
-        PMR value and weights at optimum.
+        (float, list[float]): PMR value and weights at optimum.
     """
     m = Model("PMR")
     weights_var = []
@@ -239,36 +239,25 @@ if __name__ == "__main__":
     columns_to_min = ['Weight', 'Acceleration', 'Price', 'Pollution']
 
     # Read input data
-    car_data_set = pd.read_csv('data.csv', skiprows=1,
-                           dtype={'Design': np.float64, 'Frame': np.float64})
+    car_data_set = pd.read_csv(
+        'data.csv',
+        skiprows=1,
+        dtype={'Design': np.float64, 'Frame': np.float64}
+    )
 
     # Numeric columns
     columns = ['Engine', 'Torque', 'Weight', 'Acceleration', 'Price', 'Pollution']
 
-    # min-max normalize
-    
+    # Convert problem to maximisation problem.
     x_norm = car_data_set.loc[:, columns]
-    print(x_norm[columns])
     x_norm[columns_to_min] = x_norm[columns_to_min].apply(lambda v: -v)
+
+    # Compute ideal and nadir point approximation.
     ipt, npt = get_ideal_nadir(x_norm)
+
+    # Normalize by Ideal-Nadir gap.
     x_norm = x_norm / (ipt - npt)
-    print(x_norm[columns])
-    
-    # Convert columns to minimize
-    
-
-    # Try different weight initialisation:
-
 
     # Start CSS
     current_solution_strategy(x_norm, display=True, gen_type="ordered")
-
-    #Average number of questions required to find DM's favorite car
-    # with nbiter=100 , av_num=1.28 (with uniform iid distribution of weight).
-    # with nbiter=100 , av_num= 2.67 (with uniform peaked distribution of weight).
-    # with nbiter=100 , av_num=2.29 (with uniform ordered distribution of weight).
-    #av_numb=average_number_querries_required(x_norm,nbiter=100,param="peaked")
-    #print("Average number of querries : "+str(av_numb))
-    #av_numb=average_number_querries_required(x_norm,nbiter=100,param="ordered")
-    #print("Average number of querries : "+str(av_numb))
 

@@ -73,10 +73,9 @@ def augmented_tchebycheff_dist(point, ideal_point, nadir_point, epsilon=0.001):
     if ideal_point.equals(nadir_point):
         return 0
 
-    weights = pd.Series({obj: 1 / float(len(point)) for obj in point.index})
-    norm_i = (weights * (ideal_point - point)) / (ideal_point - nadir_point)
+    norm_i = (ideal_point - point) / (ideal_point - nadir_point)
     max_norm = norm_i.max()
-    e_sum = (weights * norm_i).sum() * epsilon
+    e_sum = norm_i.sum() * epsilon
     return max_norm + e_sum
 
 

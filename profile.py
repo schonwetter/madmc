@@ -36,13 +36,13 @@ def create_weights(length=1, gen_type="iid"):
     return weights / weights.sum()
 
 
-def create_weighted_sum_dm(data_set, weights=None, gen_type="iid"):
+def create_weighted_sum_dm(_data_set, weights=None, gen_type="iid"):
     """Computes the best solution in `data_set` in regards to a weighted sum of
     the objectives. If no argument `weights` is passed, a random weight vector
     is generated (with its values summing to one).
 
     Args:
-        data_set (pd.DataFrame): Data matrix in which to search the best
+        _data_set (pd.DataFrame): Data matrix in which to search the best
             solution.
         weights (list): Weight vector of dimension (1, len(pareto_set)).
         gen_type (string): Type of generation for the weights. Can be 'iid',
@@ -53,12 +53,12 @@ def create_weighted_sum_dm(data_set, weights=None, gen_type="iid"):
             solution.
     """
     if weights is None:
-        weights = create_weights(length=len(data_set.columns), gen_type=gen_type)
+        weights = create_weights(length=len(_data_set.columns), gen_type=gen_type)
 
     max_value = -float('inf')
     best_index = 0
-    for i in range(len(data_set)):
-        weighted_sum = (weights * data_set[data_set.columns].iloc[i]).sum()
+    for i in range(len(_data_set)):
+        weighted_sum = (weights * _data_set[_data_set.columns].iloc[i]).sum()
         if weighted_sum > max_value:
             max_value = weighted_sum
             best_index = i
