@@ -190,13 +190,9 @@ def current_solution_strategy(data_set, display=False, gen_type="iid"):
         # Ask DM's preference between x and y.
         f_x = fitness(_weights_dm, data_set[data_set.columns].iloc[x])
         f_y = fitness(_weights_dm, data_set[data_set.columns].iloc[y])
-        print(f_x)
-        print(f_y)
         if f_x >= f_y:
-
             known_preferences.append((data_set.iloc[x], data_set.iloc[y]))
         else:
-
             known_preferences.append((data_set.iloc[y], data_set.iloc[x]))
 
         cpt_question += 1
